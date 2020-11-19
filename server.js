@@ -1,3 +1,4 @@
+const { throwStatement } = require('@babel/types');
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const inputCheck = require('./utils/inputCheck');
@@ -58,17 +59,23 @@ app.get('/api/candidate/:id', (req, res) => {
     });
 });
 
-//Delete a candidate
-app.delete('/api/candidate/:id', (req, res) => {
-    const sql = `DELETE FROM candidates WHERE id = ?`;
-    const params = [req.params.id];
+app.put('/api/candidate/:id', (req, res) => {
+    const errors = inputCheck(req.body, 'party_id');
+    if (errors) {
+        res.status(400).json({ error: errors });
+        return;
+    }
+    const sql = `UPDATE candidates SET party_id = ?
+                WHERE id = ?`;
+    const params = [req.body.party_id, req.params.id];
     db.run(sql, params, function(err, result) {
         if(err) {
-            res,status(400).json({ error: err.message});
+            res.status(400).json({ error: err.message });
             return;
         }
         res.json({
-            message: 'successfully deleted',
+            message: 'success',
+            data: req.body,
             changes: this.changes
         });
     });
@@ -87,6 +94,70 @@ app.post('/api/candidate', ({ body }, res) => {
         id: this.lastID
     });
 });
+
+//Delete a candidate
+app.delete('/api/candidate/:id', (req, res) => {
+    const sql = `DELETE FROM candidates WHERE id = ?`;
+    const params = [req.params.id];
+    db.run(sql, params, function(err, result) {
+        if(err) {
+            res,status(400).json({ error: err.message});
+            return;
+        }
+        res.json({
+            message: 'successfully deleted',
+            changes: this.changes
+        });
+    });
+});
+
+//Get all parties
+app.get('/api/parties', (req, res) => {
+    const sql = `SELECT * FROM parties`;
+    const parms = [];
+    db.all(sql, params, (err, rows) => {
+        if(err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data: rows
+        });
+    });
+});
+
+//Get single party
+app.get('/api/party/:id', (req, res) => {
+    const sql = `SELECT * FROM parties WHERE id = ?`;
+    const params = [req.params.id];
+    db.get(sql, params, (err, row) => {
+        if(err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data:row
+        });
+    });
+});
+
+
+//Delete a party
+app.delete('/api/party/:id', (req, res) => {
+    const sql = `DELETE FROM parties WHERE id = ?`;
+    const params = [req.params.id];
+    db.run(sql, params, function(err, result) {
+        if(err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({ message: 'successfully deleted', changes: this.changes });
+    });
+});
+
+
 
 //Default response for any other request(Not Found) Catch all
 // app.use((req, res) => {
